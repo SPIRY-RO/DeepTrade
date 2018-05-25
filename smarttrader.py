@@ -27,7 +27,7 @@ import numpy
 from tensorflow.contrib.layers.python.layers.layers import batch_norm
 import sys
 from numpy.random import seed
-
+import re
 
 class SmartTrader(object):
     def __init__(self, step, input_size, starter_learning_rate, hidden_size, nclasses, decay_step=500, decay_rate=1.0, cost=0.0002):
@@ -164,7 +164,20 @@ def train(trader, train_set, val_set, train_steps=10000, batch_size=32, keep_rat
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         writer = tf.summary.FileWriter("./graphs", sess.graph)
-        for i in range(initial_step, initial_step + train_steps):
+        #回复训练模型
+        ckpt = tf.train.get_checkpoint_state(os.path.dirname('checkpoint/checkpoint'))
+        if ckpt and ckpt.model_checkpoint_path:
+            saver.restore(sess, ckpt.model_checkpoint_path)
+
+        global  INDEX
+        key=ckpt.model_checkpoint_path
+        # 将正则表达式编译成Pattern对象
+        rr=re.search(r'[0-9]+',key)
+        # 使用Pattern匹配文本，获得匹配结果，无法匹配时将返回None
+        print(rr.group(0))
+        INDEX=rr.group(0)
+        INDEX=int(INDEX)
+        for i in range(INDEX, INDEX + train_steps):
             batch_features, batch_labels = train_set.next_batch(batch_size)
             _, loss, avg_pos, summary = sess.run([trader.optimizer, trader.loss, trader.avg_position, trader.summary_op],
                                         feed_dict={trader.x: batch_features, trader.y: batch_labels,
@@ -215,10 +228,10 @@ def predict(val_set, step=30, input_size=61, learning_rate=0.001, hidden_size=8,
         cr = calculate_cumulative_return(labels, pred)
         print("changeRate\tpositionAdvice\tprincipal\tcumulativeReturn")
         for i in range(len(labels)):
-            print(str(labels[i]) + "\t" + str(pred[i]) + "\t" + str(cr[i] + 1.) + "\t" + str(cr[i]))
-        #print("ChangeRate\tPositionAdvice")
-        #for i in range(len(labels)):
-        #    print(str(labels[i][0]) + "\t" + str(pred[i][0]))
+            print(i,str(labels[i]) + "\t" + str(pred[i]) + "\t" + str(cr[i] + 1.) + "\t" + str(cr[i]))
+        # print("ChangeRate\tPositionAdvice")
+        # for i in range(len(labels)):
+        #    print(i,str(labels[i][0]) + "\t" + str(pred[i][0]))
 
 
 def main(operation='train', code=None):
@@ -298,7 +311,7 @@ def main(operation='train', code=None):
 if __name__ == '__main__':
     tf.set_random_seed(2)
     seed(1)
-    operation = 'train'
+    operation = 'predict'
     code = None
     if len(sys.argv) > 1:
         operation = sys.argv[1]
