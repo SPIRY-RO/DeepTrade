@@ -246,7 +246,7 @@ def main(operation='train', code=None):
     validation_size = 700
     keep_rate = 0.7
 
-    selector = ["ROCP", "OROCP", "HROCP", "LROCP", "MACD", "RSI", "VROCP", "BOLL", "MA", "VMA", "PRICE_VOLUME"]
+    selector = ["ROCP", "OROCP", "HROCP", "LROCP", "MACD", "RSI", "VROCP", "BOLL", "MA", "VMA", "PRICE_VOLUME","AVERAGE"]
     input_shape = [30, 61]  # [length of time series, length of feature]
 
     if operation == 'train':
@@ -308,6 +308,7 @@ def main(operation='train', code=None):
 
     else:
         print("Operation not supported. ")
+
 
 if __name__ == '__main__':
     tf.set_random_seed(2)

@@ -240,6 +240,44 @@ class ChartFeature(object):
             vrocp = numpy.arctan(numpy.nan_to_num(talib.ROCP(numpy.maximum(volumes, 1), timeperiod=1)))
             pv = rocp * vrocp
             self.feature.append(pv)
+        if feature_type == 'AVERAGE':
+            fluctuation_line=talib.EMA((close_prices-low_prices)/(high_prices-low_prices)*4,timeperiod=4)
+            average_data = talib.EMA (fluctuation_line,3)
+            pass
+            # X = np.array(data)
+            # self.X=X
+            # my_low_list= np.array(X[:,3],dtype=np.float)
+            # my_low_list = pd.Series(my_low_list)
+            # llv_data = NumericSeries(my_low_list)
+            # llv_data=LLV(llv_data,200)
+            # ret = list(map(float, X[:,2]))
+            # my_high_list=list(ret)
+            # my_high_list = pd.Series(my_high_list)
+            # hhv_data = NumericSeries(my_high_list)
+            # hhv_data = HHV(hhv_data,200)
+            #
+            # my_close_list=np.array(X[:,4],dtype=np.float)
+            # my_close_list = pd.Series(my_close_list)
+            # close_data=np.array(my_close_list)
+            # close_data = NumericSeries(close_data)
+            #
+            # my_open_list=np.array(X[:,1],dtype=np.float)
+            #
+            # fluctuation_line = EMA((close_data-llv_data)/(hhv_data-llv_data)*4,4)
+            #
+            # ret = list(map(float, X[:,6]))
+            # time_data = list(ret)
+            # #信息:=平均线>=REF(平均线,1);
+            # average_data = EMA (fluctuation_line,3)
+            #
+            # my_open_list=my_open_list[-500:]
+            # my_close_list=my_close_list[-500:]
+            # close_mean_value=  my_close_list.mean()
+            #
+            # self.ma90=MA(close_data,90)
+            # self.ma3=MA(close_data,3)
+            #
+            # return average_data,my_close_list,close_mean_value,my_open_list
 
 
 def extract_feature(raw_data, selector, window=30, with_label=True, flatten=True):
