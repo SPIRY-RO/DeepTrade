@@ -100,11 +100,13 @@ class ChartFeature(object):
             self.feature.append(lrocp)
         if feature_type == 'MACD':
             macd, signal, hist = talib.MACD(close_prices, fastperiod=12, slowperiod=26, signalperiod=9)
+            #倒序
             norm_signal = numpy.minimum(numpy.maximum(numpy.nan_to_num(signal), -1), 1)
             norm_hist = numpy.minimum(numpy.maximum(numpy.nan_to_num(hist), -1), 1)
             norm_macd = numpy.minimum(numpy.maximum(numpy.nan_to_num(macd), -1), 1)
 
             zero = numpy.asarray([0])
+            #倒序
             macdrocp = numpy.minimum(numpy.maximum(numpy.concatenate((zero, numpy.diff(numpy.nan_to_num(macd)))), -1), 1)
             signalrocp = numpy.minimum(numpy.maximum(numpy.concatenate((zero, numpy.diff(numpy.nan_to_num(signal)))), -1), 1)
             histrocp = numpy.minimum(numpy.maximum(numpy.concatenate((zero, numpy.diff(numpy.nan_to_num(hist)))), -1), 1)

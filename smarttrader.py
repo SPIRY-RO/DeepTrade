@@ -226,6 +226,7 @@ def predict(val_set, step=30, input_size=61, learning_rate=0.001, hidden_size=8,
                                             trader.is_training: False, trader.keep_rate: 1.})
 
         cr = calculate_cumulative_return(labels, pred)
+        #收盘价变化率，当前点建议，本金，总回报率
         print("changeRate\tpositionAdvice\tprincipal\tcumulativeReturn")
         for i in range(len(labels)):
             print(i,str(labels[i]) + "\t" + str(pred[i]) + "\t" + str(cr[i] + 1.) + "\t" + str(cr[i]))
