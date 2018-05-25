@@ -39,6 +39,7 @@ class ChartFeature(object):
             while p + window < feature_arr.shape[1]:
                 x = feature_arr[:, p:p + window]
                 # y = cmp(close_prices[p + window], close_prices[p + window - 1]) + 1
+                #日线变化率
                 p_change = (close_prices[p + window] - close_prices[p + window - 1]) / close_prices[p + window - 1]
                 # use percent of change as label
                 y = p_change
@@ -59,6 +60,7 @@ class ChartFeature(object):
                 p += 1
             return moving_features
 
+    #得出指标数值
     def extract(self, open_prices=None, close_prices=None, high_prices=None, low_prices=None, volumes=None):
         self.feature = []
         for feature_type in self.selector:
