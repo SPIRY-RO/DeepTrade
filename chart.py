@@ -13,16 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import pandas
 
 import numpy
 import talib
 import math
 
+from funcat import LLV, HHV, EMA
+from funcat.time_series import NumericSeries
+
 
 class ChartFeature(object):
     def __init__(self, selector):
         self.selector = selector
-        self.supported = {"ROCP", "OROCP", "HROCP", "LROCP", "MACD", "RSI", "VROCP", "BOLL", "MA", "VMA", "PRICE_VOLUME"}
+        self.supported = {"ROCP", "OROCP", "HROCP", "LROCP", "MACD", "RSI", "VROCP", "BOLL", "MA", "VMA", "PRICE_VOLUME","AVERAGE"}
         self.feature = []
 
     def moving_extract(self, window=30, open_prices=None, close_prices=None, high_prices=None, low_prices=None,
@@ -241,41 +245,32 @@ class ChartFeature(object):
             pv = rocp * vrocp
             self.feature.append(pv)
         if feature_type == 'AVERAGE':
-            fluctuation_line=talib.EMA((close_prices-low_prices)/(high_prices-low_prices)*4,timeperiod=4)
-            average_data = talib.EMA (fluctuation_line,3)
-            pass
-            # X = np.array(data)
-            # self.X=X
-            # my_low_list= np.array(X[:,3],dtype=np.float)
-            # my_low_list = pd.Series(my_low_list)
-            # llv_data = NumericSeries(my_low_list)
-            # llv_data=LLV(llv_data,200)
-            # ret = list(map(float, X[:,2]))
-            # my_high_list=list(ret)
-            # my_high_list = pd.Series(my_high_list)
-            # hhv_data = NumericSeries(my_high_list)
-            # hhv_data = HHV(hhv_data,200)
-            #
-            # my_close_list=np.array(X[:,4],dtype=np.float)
-            # my_close_list = pd.Series(my_close_list)
-            # close_data=np.array(my_close_list)
-            # close_data = NumericSeries(close_data)
-            #
-            # my_open_list=np.array(X[:,1],dtype=np.float)
-            #
-            # fluctuation_line = EMA((close_data-llv_data)/(hhv_data-llv_data)*4,4)
-            #
-            # ret = list(map(float, X[:,6]))
-            # time_data = list(ret)
-            # #信息:=平均线>=REF(平均线,1);
-            # average_data = EMA (fluctuation_line,3)
-            #
-            # my_open_list=my_open_list[-500:]
-            # my_close_list=my_close_list[-500:]
-            # close_mean_value=  my_close_list.mean()
-            #
-            # self.ma90=MA(close_data,90)
-            # self.ma3=MA(close_data,3)
+            my_low_list= numpy.array(low_prices,dtype=numpy.float)
+            my_low_list = pandas.Series(my_low_list)
+            llv_data = NumericSeries(my_low_list)
+            llv_data=LLV(llv_data,200)
+            my_high_list= numpy.array(high_prices,dtype=numpy.float)
+            my_high_list = pandas.Series(my_high_list)
+            hhv_data = NumericSeries(my_high_list)
+            hhv_data = HHV(hhv_data,200)
+
+            my_close_list=numpy.array(close_prices,dtype=numpy.float)
+            my_close_list = pandas.Series(my_close_list)
+            close_data=numpy.array(my_close_list)
+            close_data = NumericSeries(close_data)
+
+            my_open_list=numpy.array(open_prices,dtype=numpy.float)
+            fluctuation_line = EMA((close_data-llv_data)/(hhv_data-llv_data)*4,4)
+
+            #信息:=平均线>=REF(平均线,1);
+            average_data = EMA (fluctuation_line,3)
+            average_values = average_data.series
+            gap_size=len(close_prices)-len(average_values)
+            gap_list=numpy.zeros(gap_size)
+            temp1=numpy.insert(average_values,0,gap_list)
+            temp2=talib.ROCP(temp1,timeperiod=1)
+            self.feature.append(temp1)
+            self.feature.append(temp2)
             #
             # return average_data,my_close_list,close_mean_value,my_open_list
 

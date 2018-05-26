@@ -1,0 +1,60 @@
+{
+  "configs": [
+    {
+      "obfs": "tls1.2_ticket_auth",
+      "protocol": "auth_chain_a",
+      "method": "none",
+      "password": "5601564a",
+      "remarks": "台湾临时",
+      "server": "tw.standard.mrcloud.ga",
+      "server_port": 4636
+    },
+    {
+      "obfs": "tls1.2_ticket_auth",
+      "protocol": "auth_chain_a",
+      "method": "none",
+      "password": "5601564a",
+      "remarks": "日本临时",
+      "server": "jp.temp.mrcloud.ga",
+      "server_port": 4636
+    },
+    {
+      "obfs": "tls1.2_ticket_auth",
+      "protocol": "auth_chain_a",
+      "method": "none",
+      "password": "5601564a",
+      "remarks": "香港节点",
+      "server": "hk.mrcloud.ga",
+      "server_port": 4636
+    },
+    {
+      "obfs": "tls1.2_ticket_auth",
+      "protocol": "auth_chain_a",
+      "method": "none",
+      "password": "5601564a",
+      "remarks": "香港二线",
+      "server": "hk2.mrcloud.ga",
+      "server_port": 4636
+    },
+    {
+      "obfs": "tls1.2_ticket_auth",
+      "protocol": "auth_chain_a",
+      "method": "none",
+      "password": "5601564a",
+      "remarks": "香港三线",
+      "server": "hk3.mrcloud.ga",
+      "server_port": 4636
+    },
+    {
+      "obfs": "tls1.2_ticket_auth",
+      "protocol": "auth_chain_a",
+      "method": "none",
+      "password": "5601564a",
+      "remarks": "香港四线",
+      "server": "hk4.mrcloud.ga",
+      "server_port": 4636
+    }
+  ],
+  "localPort": 1080,
+  "shareOverLan": false
+}
