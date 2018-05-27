@@ -243,10 +243,10 @@ def predict(X,val_set, step=30, input_size=61, learning_rate=0.001, hidden_size=
 
         cr = calculate_cumulative_return(labels, pred)
         #收盘价变化率，当前点建议，本金，总回报率
-        closes=numpy.array(X[:,2],dtype=numpy.float)
-        print("PRICE\tchangeRate\tpositionAdvice\tprincipal\tcumulativeReturn")
+        closes=numpy.array(X[:,2],dtype=numpy.float)[-700:]
+        print("\tPRICE\tchangeRate\tpositionAdvice\tprincipal\tcumulativeReturn")
         for i in range(len(labels)):
-            print(i,str(closes[i]),str(labels[i]) + "\t" + str(pred[i]) + "\t" + str(cr[i] + 1.) + "\t" + str(cr[i]))
+            print(i,"\t" +str(closes[i])+ "\t" +str(labels[i]) + "\t" + str(pred[i]) + "\t" + str(cr[i] + 1.) + "\t" + str(cr[i]))
         # print("ChangeRate\tPositionAdvice")
         # for i in range(len(labels)):
         #    print(i,str(labels[i][0]) + "\t" + str(pred[i][0]))
