@@ -189,7 +189,7 @@ def train(trader, train_set, val_set, train_steps=10000, batch_size=32, keep_rat
             INDEX=rr.group(0)
             INDEX=int(INDEX)
         else:
-            INDEX=0
+            INDEX=1
 
         for i in range(INDEX, INDEX + train_steps):
             batch_features, batch_labels = train_set.next_batch(batch_size)
@@ -204,6 +204,8 @@ def train(trader, train_set, val_set, train_steps=10000, batch_size=32, keep_rat
                                                      feed_dict={trader.x: val_features, trader.y: val_labels,
                                                                 trader.is_training: False, trader.keep_rate: 1.})
                     hint = 'Average Train Loss at step {}: {:.7f} Average position {:.7f}, Validation Loss: {:.7f} Average Position: {:.7f}'.format(i, loss, avg_pos, val_loss, val_avg_pos)
+                    message='val_loss {:.7f}  ,  min_validation_loss {:.7f} '.format(val_loss,min_validation_loss)
+                    print(message)
                     if val_loss < min_validation_loss:
                         min_validation_loss = val_loss
                         saver.save(sess, "./checkpoint/best_model", i)
@@ -224,7 +226,7 @@ def calculate_cumulative_return(labels, pred):
     return cr
 
 
-def predict(val_set, step=30, input_size=61, learning_rate=0.001, hidden_size=8, nclasses=1):
+def predict(X,val_set, step=30, input_size=61, learning_rate=0.001, hidden_size=8, nclasses=1):
     features = val_set.images
     labels = val_set.labels
     trader = SmartTrader(step, input_size, learning_rate, hidden_size, nclasses)
@@ -241,9 +243,10 @@ def predict(val_set, step=30, input_size=61, learning_rate=0.001, hidden_size=8,
 
         cr = calculate_cumulative_return(labels, pred)
         #收盘价变化率，当前点建议，本金，总回报率
-        print("changeRate\tpositionAdvice\tprincipal\tcumulativeReturn")
+        closes=numpy.array(X[:,2],dtype=numpy.float)
+        print("PRICE\tchangeRate\tpositionAdvice\tprincipal\tcumulativeReturn")
         for i in range(len(labels)):
-            print(i,str(labels[i]) + "\t" + str(pred[i]) + "\t" + str(cr[i] + 1.) + "\t" + str(cr[i]))
+            print(i,str(closes[i]),str(labels[i]) + "\t" + str(pred[i]) + "\t" + str(cr[i] + 1.) + "\t" + str(cr[i]))
         # print("ChangeRate\tPositionAdvice")
         # for i in range(len(labels)):
         #    print(i,str(labels[i][0]) + "\t" + str(pred[i][0]))
@@ -269,6 +272,7 @@ def main(operation='train', code=None):
         val_features = []
         val_labels = []
         binance=get_binance()
+
         merge_bean = SmartLSTMPair("BTCUSDT","1h",binance)
         raw_data = merge_bean.get_history_data()
         X=numpy.array(raw_data)
@@ -278,6 +282,13 @@ def main(operation='train', code=None):
         train_labels.extend(moving_labels[:-validation_size])
         val_features.extend(moving_features[-validation_size:])
         val_labels.extend(moving_labels[-validation_size:])
+
+        all_tickers = binance.get_all_tickers()
+
+        for value_map in all_tickers:
+            symbol=value_map["symbol"]
+            if config.market_game_start==False:
+                merge_bean = SmartLSTMPair(value_map["symbol"],"1h",binance)
 
 
         merge_bean = SmartLSTMPair("ETHUSDT","1h",binance)
@@ -315,7 +326,8 @@ def main(operation='train', code=None):
         train(trader, train_set, val_set, train_steps, batch_size=batch_size, keep_rate=keep_rate)
     elif operation == "predict":
         binance=get_binance()
-        merge_bean = SmartLSTMPair("BTCUSDT","1h",binance)
+
+        merge_bean = SmartLSTMPair("ETHUSDT","1h",binance)
         raw_data = merge_bean.get_history_data()
         X=numpy.array(raw_data)
         moving_features, moving_labels = extract_feature(raw_data=X, selector=selector, window=input_shape[0],
@@ -326,7 +338,7 @@ def main(operation='train', code=None):
         moving_labels = numpy.reshape(moving_labels, [moving_labels.shape[0], 1])
         # train_set = DataSet(moving_features[:-validation_size], moving_labels[:-validation_size])
         val_set = DataSet(moving_features[-validation_size:], moving_labels[-validation_size:])
-        predict(val_set, step=step, input_size=input_size, learning_rate=learning_rate, hidden_size=hidden_size, nclasses=nclasses)
+        predict(X,val_set, step=step, input_size=input_size, learning_rate=learning_rate, hidden_size=hidden_size, nclasses=nclasses)
 
     else:
         print("Operation not supported. ")
