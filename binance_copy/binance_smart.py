@@ -17,17 +17,20 @@
 import tensorflow as tf
 from tensorflow.contrib import rnn
 import os
-
-from tensorflow.contrib.rnn import DropoutWrapper
 from tensorflow.python.ops.init_ops import glorot_uniform_initializer, orthogonal_initializer
+from tensorflow.contrib.rnn import DropoutWrapper
+from binance_copy.binance_chart import extract_feature
+from market_strategy import config
+from market_strategy.market_pair.SmartLSTMPair import SmartLSTMPair
 from rawdata import RawData, read_sample_data
 from dataset import DataSet
-from chart import extract_feature
 import numpy
 from tensorflow.contrib.layers.python.layers.layers import batch_norm
 import sys
 from numpy.random import seed
 import re
+from tools.binance.client import Client
+
 
 class SmartTrader(object):
     def __init__(self, step, input_size, starter_learning_rate, hidden_size, nclasses, decay_step=500, decay_rate=1.0, cost=0.0002):
@@ -151,6 +154,15 @@ class SmartTrader(object):
         self._create_optimizer()
         self._create_summary()
 
+def get_binance():
+    try:
+        binance = Client(config.binance_key,
+                              config.binance_secret)
+    except Exception as e:
+        get_binance()
+
+
+    return binance
 
 def train(trader, train_set, val_set, train_steps=10000, batch_size=32, keep_rate=1.):
     initial_step = 1
@@ -252,23 +264,32 @@ def main(operation='train', code=None):
     input_shape = [30, 63]  # [length of time series, length of feature]
 
     if operation == 'train':
-        dataset_dir = "./dataset"
         train_features = []
         train_labels = []
         val_features = []
         val_labels = []
-        for filename in os.listdir(dataset_dir):
-            #if filename != '000001.csv':
-            #    continue
-            print("processing file: " + filename)
-            filepath = dataset_dir + "/" + filename
-            raw_data = read_sample_data(filepath)
-            moving_features, moving_labels = extract_feature(raw_data=raw_data, selector=selector, window=input_shape[0],
-                                                             with_label=True, flatten=False)
-            train_features.extend(moving_features[:-validation_size])
-            train_labels.extend(moving_labels[:-validation_size])
-            val_features.extend(moving_features[-validation_size:])
-            val_labels.extend(moving_labels[-validation_size:])
+        binance=get_binance()
+        merge_bean = SmartLSTMPair("BTCUSDT","1h",binance)
+        raw_data = merge_bean.get_history_data()
+        X=numpy.array(raw_data)
+        moving_features, moving_labels = extract_feature(raw_data=X, selector=selector, window=input_shape[0],
+                                                         with_label=True, flatten=False)
+        train_features.extend(moving_features[:-validation_size])
+        train_labels.extend(moving_labels[:-validation_size])
+        val_features.extend(moving_features[-validation_size:])
+        val_labels.extend(moving_labels[-validation_size:])
+
+
+        merge_bean = SmartLSTMPair("ETHUSDT","1h",binance)
+        raw_data = merge_bean.get_history_data()
+        X=numpy.array(raw_data)
+        moving_features, moving_labels = extract_feature(raw_data=X, selector=selector, window=input_shape[0],
+                                                         with_label=True, flatten=False)
+        train_features.extend(moving_features[:-validation_size])
+        train_labels.extend(moving_labels[:-validation_size])
+        val_features.extend(moving_features[-validation_size:])
+        val_labels.extend(moving_labels[-validation_size:])
+
 
         train_features = numpy.transpose(numpy.asarray(train_features), [0, 2, 1])
         train_labels = numpy.asarray(train_labels)
@@ -293,12 +314,11 @@ def main(operation='train', code=None):
         trader.build_graph()
         train(trader, train_set, val_set, train_steps, batch_size=batch_size, keep_rate=keep_rate)
     elif operation == "predict":
-        predict_file_path = "./dataset/000001.csv"
-        if code is not None:
-            predict_file_path = "./dataset/%s.csv" % code
-        print("processing file %s" % predict_file_path)
-        raw_data = read_sample_data(predict_file_path)
-        moving_features, moving_labels = extract_feature(raw_data=raw_data, selector=selector, window=input_shape[0],
+        binance=get_binance()
+        merge_bean = SmartLSTMPair("BTCUSDT","1h",binance)
+        raw_data = merge_bean.get_history_data()
+        X=numpy.array(raw_data)
+        moving_features, moving_labels = extract_feature(raw_data=X, selector=selector, window=input_shape[0],
                                                          with_label=True, flatten=False)
         moving_features = numpy.asarray(moving_features)
         moving_features = numpy.transpose(moving_features, [0, 2, 1])
@@ -312,10 +332,11 @@ def main(operation='train', code=None):
         print("Operation not supported. ")
 
 
+
 if __name__ == '__main__':
     tf.set_random_seed(2)
     seed(1)
-    operation = 'train'
+    operation = 'predict'
     code = None
     if len(sys.argv) > 1:
         operation = sys.argv[1]

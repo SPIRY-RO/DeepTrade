@@ -29,7 +29,7 @@ class StrategyCLI:
         self.get_binance()
         self.init_db_config()
         self.game_start=True
-        self.threadpool_30m = ThreadPoolExecutor(max_workers=3)
+        self.threadpool_30m = ThreadPoolExecutor(max_workers=1)
         self.threadpool_flask = ThreadPoolExecutor(max_workers=1)
         self.flask_threadpool_run()
 
@@ -44,6 +44,8 @@ class StrategyCLI:
         logger.debug("main")
         self.base_init()
         self.create_bean()
+
+
         try :
             self.loop()
         except Exception as  e:
