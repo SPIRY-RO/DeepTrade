@@ -188,6 +188,8 @@ def train(trader, train_set, val_set, train_steps=10000, batch_size=32, keep_rat
             print(rr.group(0))
             INDEX=rr.group(0)
             INDEX=int(INDEX)
+            INDEX=INDEX+1
+
         else:
             INDEX=1
 
@@ -209,6 +211,9 @@ def train(trader, train_set, val_set, train_steps=10000, batch_size=32, keep_rat
                     if val_loss < min_validation_loss:
                         min_validation_loss = val_loss
                         saver.save(sess, "./checkpoint/best_model", i)
+
+                        fh = open(as_num(val_loss,8), 'w')
+                        fh.close()
                 else:
                     hint = 'Average loss at step {}: {:.7f} Average position {:.7f}'.format(i, loss, avg_pos)
                 print(hint)
@@ -225,6 +230,10 @@ def calculate_cumulative_return(labels, pred):
         cr[i] = cr[i] - 1
     return cr
 
+def as_num(x,num):
+    str='{:.%df}'%(num)
+    y=str.format(x) # nf表示保留n位小数点的float型
+    return(y)
 
 def predict(X,val_set, step=30, input_size=61, learning_rate=0.001, hidden_size=8, nclasses=1):
     features = val_set.images
@@ -237,7 +246,7 @@ def predict(X,val_set, step=30, input_size=61, learning_rate=0.001, hidden_size=
         ckpt = tf.train.get_checkpoint_state(os.path.dirname('checkpoint/checkpoint'))
         if ckpt and ckpt.model_checkpoint_path:
             saver.restore(sess, ckpt.model_checkpoint_path)
-        pred, avg_pos = sess.run([trader.position, trader.avg_position],
+        pred,loss, avg_pos = sess.run([trader.position,trader.loss, trader.avg_position],
                                  feed_dict={trader.x: features, trader.y: labels,
                                             trader.is_training: False, trader.keep_rate: 1.})
 
@@ -282,14 +291,6 @@ def main(operation='train', code=None):
         train_labels.extend(moving_labels[:-validation_size])
         val_features.extend(moving_features[-validation_size:])
         val_labels.extend(moving_labels[-validation_size:])
-
-        all_tickers = binance.get_all_tickers()
-
-        for value_map in all_tickers:
-            symbol=value_map["symbol"]
-            if config.market_game_start==False:
-                merge_bean = SmartLSTMPair(value_map["symbol"],"1h",binance)
-
 
         merge_bean = SmartLSTMPair("ETHUSDT","1h",binance)
         raw_data = merge_bean.get_history_data()
