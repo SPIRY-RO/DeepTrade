@@ -269,7 +269,6 @@ class ChartFeature(object):
             gap_list=numpy.zeros(gap_size)
             temp1=numpy.insert(average_values,0,gap_list)
             temp2=talib.ROCP(temp1,timeperiod=1)
-            self.feature.append(temp1)
             self.feature.append(temp2)
             #
             # return average_data,my_close_list,close_mean_value,my_open_list

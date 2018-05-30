@@ -22,13 +22,13 @@ from tensorflow.contrib.rnn import DropoutWrapper
 from binance_copy.binance_chart import extract_feature
 from market_strategy import config
 from market_strategy.market_pair.SmartLSTMPair import SmartLSTMPair
-from rawdata import RawData, read_sample_data
-from dataset import DataSet
 import numpy
 from tensorflow.contrib.layers.python.layers.layers import batch_norm
 import sys
 from numpy.random import seed
 import re
+
+from mydataset import MyDataSet
 from tools.binance.client import Client
 
 
@@ -74,7 +74,7 @@ class SmartTrader(object):
         with tf.variable_scope("parameter"):
             self.global_step = tf.Variable(0, trainable=False, name="global_step")
             self.learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
-                                                            self.decay_step, self.decay_rate, staircase=True, name="learning_rate")
+                                                   self.decay_step, self.decay_rate, staircase=True, name="learning_rate")
 
     def _create_placeholders(self):
         with tf.variable_scope("input"):
@@ -129,6 +129,7 @@ class SmartTrader(object):
         self.position = tf.nn.relu6(norm_signal, name="relu_limit") / 6.
         self.avg_position = tf.reduce_mean(self.position)
         # self.cost = 0.0002
+        #The change rate of next day is self.y
         self.loss = -100. * tf.reduce_mean(tf.multiply((self.y - self.cost), self.position, name="estimated_risk"))
 
     def _create_optimizer(self):
@@ -161,7 +162,6 @@ def get_binance():
     except Exception as e:
         get_binance()
 
-
     return binance
 
 def train(trader, train_set, val_set, train_steps=10000, batch_size=32, keep_rate=1.):
@@ -190,21 +190,27 @@ def train(trader, train_set, val_set, train_steps=10000, batch_size=32, keep_rat
             INDEX=int(INDEX)
             INDEX=INDEX+1
 
+            with open('val_loss.txt') as file_object:
+                contents = file_object.read()
+                print(type(contents))
+                print(contents)
+                min_validation_loss = float(contents)
+
         else:
             INDEX=1
 
         for i in range(INDEX, INDEX + train_steps):
             batch_features, batch_labels = train_set.next_batch(batch_size)
             _, loss, avg_pos, summary = sess.run([trader.optimizer, trader.loss, trader.avg_position, trader.summary_op],
-                                                 feed_dict={trader.x: batch_features, trader.y: batch_labels,
-                                                            trader.is_training: True, trader.keep_rate: keep_rate})
+                                        feed_dict={trader.x: batch_features, trader.y: batch_labels,
+                                                   trader.is_training: True, trader.keep_rate: keep_rate})
             writer.add_summary(summary, global_step=i)
             if i % VERBOSE_STEP == 0:
                 hint = None
                 if i % VALIDATION_STEP == 0:
                     val_loss, val_avg_pos = sess.run([trader.loss, trader.avg_position],
-                                                     feed_dict={trader.x: val_features, trader.y: val_labels,
-                                                                trader.is_training: False, trader.keep_rate: 1.})
+                                           feed_dict={trader.x: val_features, trader.y: val_labels,
+                                           trader.is_training: False, trader.keep_rate: 1.})
                     hint = 'Average Train Loss at step {}: {:.7f} Average position {:.7f}, Validation Loss: {:.7f} Average Position: {:.7f}'.format(i, loss, avg_pos, val_loss, val_avg_pos)
                     message='val_loss {:.7f}  ,  min_validation_loss {:.7f} '.format(val_loss,min_validation_loss)
                     print(message)
@@ -212,7 +218,8 @@ def train(trader, train_set, val_set, train_steps=10000, batch_size=32, keep_rat
                         min_validation_loss = val_loss
                         saver.save(sess, "./checkpoint/best_model", i)
 
-                        fh = open(as_num(val_loss,8), 'w')
+                        fh = open('val_loss.txt', 'w')
+                        fh.write(as_num(val_loss,8))
                         fh.close()
                 else:
                     hint = 'Average loss at step {}: {:.7f} Average position {:.7f}'.format(i, loss, avg_pos)
@@ -246,13 +253,13 @@ def predict(X,val_set, step=30, input_size=61, learning_rate=0.001, hidden_size=
         ckpt = tf.train.get_checkpoint_state(os.path.dirname('checkpoint/checkpoint'))
         if ckpt and ckpt.model_checkpoint_path:
             saver.restore(sess, ckpt.model_checkpoint_path)
-        pred,loss, avg_pos = sess.run([trader.position,trader.loss, trader.avg_position],
+        pred, avg_pos = sess.run([trader.position, trader.avg_position],
                                  feed_dict={trader.x: features, trader.y: labels,
                                             trader.is_training: False, trader.keep_rate: 1.})
 
         cr = calculate_cumulative_return(labels, pred)
         #收盘价变化率，当前点建议，本金，总回报率
-        closes=numpy.array(X[:,2],dtype=numpy.float)[-700:]
+        closes=numpy.array(X[:,4],dtype=numpy.float)[-700:]
         print("\tPRICE\tchangeRate\tpositionAdvice\tprincipal\tcumulativeReturn")
         for i in range(len(labels)):
             print(i,"\t" +str(closes[i])+ "\t" +str(labels[i]) + "\t" + str(pred[i]) + "\t" + str(cr[i] + 1.) + "\t" + str(cr[i]))
@@ -263,7 +270,7 @@ def predict(X,val_set, step=30, input_size=61, learning_rate=0.001, hidden_size=
 
 def main(operation='train', code=None):
     step = 30
-    input_size = 63
+    input_size = 62
     train_steps = 1000000
     batch_size = 512
     learning_rate = 0.001
@@ -273,7 +280,7 @@ def main(operation='train', code=None):
     keep_rate = 0.7
 
     selector = ["ROCP", "OROCP", "HROCP", "LROCP", "MACD", "RSI", "VROCP", "BOLL", "MA", "VMA", "PRICE_VOLUME","AVERAGE"]
-    input_shape = [30, 63]  # [length of time series, length of feature]
+    input_shape = [30, 62]  # [length of time series, length of feature]
 
     if operation == 'train':
         train_features = []
@@ -309,8 +316,8 @@ def main(operation='train', code=None):
         val_features = numpy.transpose(numpy.asarray(val_features), [0, 2, 1])
         val_labels = numpy.asarray(val_labels)
         val_labels = numpy.reshape(val_labels, [val_labels.shape[0], 1])
-        train_set = DataSet(train_features, train_labels)
-        val_set = DataSet(val_features, val_labels)
+        train_set = MyDataSet(train_features, train_labels)
+        val_set = MyDataSet(val_features, val_labels)
 
         # raw_data = read_sample_data("toy_stock.csv")
         # moving_features, moving_labels = extract_feature(raw_data=raw_data, selector=selector, window=input_shape[0],
@@ -328,7 +335,7 @@ def main(operation='train', code=None):
     elif operation == "predict":
         binance=get_binance()
 
-        merge_bean = SmartLSTMPair("ETHUSDT","1h",binance)
+        merge_bean = SmartLSTMPair("BTCUSDT","1h",binance)
         raw_data = merge_bean.get_history_data()
         X=numpy.array(raw_data)
         moving_features, moving_labels = extract_feature(raw_data=X, selector=selector, window=input_shape[0],
@@ -338,7 +345,7 @@ def main(operation='train', code=None):
         moving_labels = numpy.asarray(moving_labels)
         moving_labels = numpy.reshape(moving_labels, [moving_labels.shape[0], 1])
         # train_set = DataSet(moving_features[:-validation_size], moving_labels[:-validation_size])
-        val_set = DataSet(moving_features[-validation_size:], moving_labels[-validation_size:])
+        val_set = MyDataSet(moving_features[-validation_size:], moving_labels[-validation_size:])
         predict(X,val_set, step=step, input_size=input_size, learning_rate=learning_rate, hidden_size=hidden_size, nclasses=nclasses)
 
     else:

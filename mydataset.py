@@ -26,7 +26,7 @@ def dense_to_one_hot(labels_dense, num_classes):
     return labels_one_hot
 
 
-class DataSet(object):
+class MyDataSet(object):
     def __init__(self, images, labels):
         assert images.shape[0] == labels.shape[0], (
                 "images.shape: %s labels.shape: %s" % (images.shape,
